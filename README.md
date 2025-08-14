@@ -1,26 +1,25 @@
 
-# GitHub Issue Assistant MCP
+# GitHub Issue Assistant MCP (Mastra Version)
 
 ## 📌 项目简介
 
-**GitHub Issue Assistant MCP** 是一个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 的本地工具服务，允许你直接在 AI 对话中（如 Claude Desktop、Cursor 等支持 MCP 的客户端）使用自然语言创建、管理和查看 GitHub 仓库的 Issue。
+**GitHub Issue Assistant MCP** 是一个基于 [Mastra](https://mastra.io) 与 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 构建的智能开发工具，它允许你直接在 AI 对话（如 Claude Desktop、Cursor 等 MCP 客户端）中，通过自然语言创建、管理和查看 GitHub 仓库的 Issue。
 
-本项目旨在演示如何利用 MCP 将日常研发工作流（如任务跟踪、Bug 报告、需求讨论）与 AI Agent 无缝结合，实现：
+本项目示范了如何：
 
-* **自然语言 → GitHub 操作** 的即时转化
-* **安全受控** 的访问权限（基于细粒度 PAT）
-* **可扩展** 的工具接口（支持增删改查等多类 Issue 操作）
+* 使用 **Mastra** 快速搭建具备上下文处理能力的 MCP Server
+* 通过 **GitHub REST API** 实现标准化 Issue 管理
+* 将 AI 对话上下文无缝映射到实际研发任务
 
 ---
 
 ## 🎯 项目意图
 
-本项目是一次结合**云端 AI 开发助手**与**实际开发流程自动化**的实践，适用于：
+本项目旨在展示**云端 AI 开发助手**与**研发自动化工具链**的融合。通过 Mastra，我们能够：
 
-* 在 AI 对话中快速生成标准化的 Issue 模板
-* 自动分配标签和负责人
-* 从对话上下文直接同步到 GitHub 仓库，减少上下文切换
-* 在教学或作业中展示 MCP 的端到端集成能力
+* 轻松注册和管理 MCP 工具
+* 在执行前后注入自定义逻辑（如输入验证、响应格式化、调用链跟踪）
+* 将 GitHub 操作嵌入 AI Agent 的推理流程中，减少上下文切换
 
 ---
 
@@ -32,9 +31,10 @@ flowchart LR
         A[自然语言请求] -->|MCP调用| B(MCP Client)
     end
 
-    subgraph Local MCP Server
-        B -->|stdin/stdout JSON RPC| C[MCP Server Node.js]
-        C -->|REST API 调用| D[GitHub API]
+    subgraph Local MCP Server (Mastra)
+        B -->|Stdio JSON RPC| C[Mastra MCP Server]
+        C -->|调用工具定义| T[Mastra Tools Layer]
+        T -->|HTTP Fetch| D[GitHub API]
     end
 
     subgraph GitHub Cloud
@@ -44,26 +44,25 @@ flowchart LR
     C --> B --> A
 ```
 
-**主要组件：**
+**核心组件：**
 
-1. **MCP Server (`server.mjs`)**
+1. **Mastra MCP Server**
 
-   * 使用 `@modelcontextprotocol/sdk` 构建
-   * 提供 `create_issue`、`add_labels`、`list_issues` 等工具
-2. **MCP Client**
+   * 基于 Mastra 的 MCP SDK 实现，管理工具注册与调用
+   * 提供 `create_issue`、`add_labels`、`list_issues` 等 GitHub 相关工具
+2. **Mastra Tools Layer**
 
-   * Claude Desktop 或 Cursor
-   * 通过本地配置文件将 MCP Server 接入 AI 对话环境
+   * 使用 Mastra 工具定义（Tool Definition）与 Schema（Zod）实现参数校验与文档化
 3. **GitHub REST API**
 
-   * 使用细粒度 PAT（Personal Access Token）进行授权
+   * 使用细粒度 Personal Access Token (PAT) 授权
    * 所需最小权限：`Issues: Read and write` + `Metadata: Read-only`
 
 ---
 
 ## 🔧 功能清单
 
-| 功能             | 描述           | 输入参数                                        | 示例调用                                                   |
+| 工具名称           | 功能描述         | 输入参数                                        | 示例调用                                                   |
 | -------------- | ------------ | ------------------------------------------- | ------------------------------------------------------ |
 | `create_issue` | 创建新 Issue    | owner, repo, title, body, labels, assignees | “帮我在 `myorg/myrepo` 创建一个标题为‘前端 Bug’的 Issue 并打上 bug 标签” |
 | `add_labels`   | 给 Issue 添加标签 | owner, repo, number, labels                 | “给 myrepo 的 #42 添加 `help wanted` 标签”                   |
@@ -71,17 +70,18 @@ flowchart LR
 
 ---
 
-## ⚙️ 环境变量配置
+## ⚙️ 环境变量
 
 ```bash
 # 必需
 GITHUB_TOKEN=ghp_xxxxxxxx       # GitHub PAT
+
 # 可选（减少每次输入 owner/repo）
 GH_DEFAULT_OWNER=my-github-username
 GH_DEFAULT_REPO=my-repo
 ```
 
-> 建议使用 **细粒度 PAT** 并只勾选必要权限，避免暴露仓库或组织内的其他敏感数据。
+> **建议**：使用 GitHub 细粒度 PAT，只勾选必要权限。
 
 ---
 
@@ -92,20 +92,23 @@ npm install
 GITHUB_TOKEN=your_token_here node server.mjs
 ```
 
-在 Claude Desktop / Cursor 中将该 MCP Server 添加到配置文件，重启客户端即可。
+在 Claude Desktop / Cursor 中将该 Mastra MCP Server 添加到配置文件，重启客户端即可。
 
 ---
 
-## 🛡️ 安全注意事项
+## 🛡️ 安全建议
 
-* 不要在仓库提交 `.env` 文件或包含 Token 的代码
-* 为不同用途的项目生成独立的 PAT
-* 对组织仓库的访问需确认已获批准
+* **最小权限**：细粒度 PAT 仅授权所需仓库与 Issue 权限
+* **不提交敏感信息**：将 Token 存放于 `.env`，并在 `.gitignore` 中忽略
+* **组织仓库**：需要管理员批准细粒度 PAT 才能生效
 
 ---
 
-## 🌟 亮点
+## 🌟 Mastra 的优势
 
-* **易用性**：零侵入接入现有对话式 AI 工作流
-* **安全性**：最小权限设计，支持细粒度访问控制
-* **扩展性**：可轻松添加新功能，如评论、关闭 Issue，甚至跨平台协作工具集成
+* **更快的工具注册**：使用 Mastra 提供的 API 一步定义并注册 MCP 工具
+* **可扩展性强**：可方便地增加额外工具（评论、关闭 Issue、拉取 PR 等）
+* **上下文增强**：可在工具执行前后注入 AI 上下文、业务逻辑和验证规则
+* **更好调试体验**：Mastra 提供内建的日志和调试功能，便于开发测试
+
+
