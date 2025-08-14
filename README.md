@@ -27,21 +27,24 @@
 
 ```mermaid
 flowchart LR
-    subgraph Claude/Cursor
-        A[自然语言请求] -->|MCP调用| B(MCP Client)
-    end
+  %% 客户端
+  subgraph "Claude / Cursor"
+    A[自然语言请求] -->|MCP 调用| B[MCP Client]
+  end
 
-    subgraph Local MCP Server (Mastra)
-        B -->|Stdio JSON RPC| C[Mastra MCP Server]
-        C -->|调用工具定义| T[Mastra Tools Layer]
-        T -->|HTTP Fetch| D[GitHub API]
-    end
+  %% 本地服务（Mastra）
+  subgraph "Local MCP Server (Mastra)"
+    B -->|stdio JSON-RPC| C[Mastra MCP Server]
+    C -->|调用工具定义| T[Mastra Tools Layer]
+    T -->|HTTP Fetch| D[(GitHub API)]
+  end
 
-    subgraph GitHub Cloud
-        D -->|返回数据| C
-    end
+  %% 云端
+  subgraph "GitHub Cloud"
+    D -->|响应数据| C
+  end
 
-    C --> B --> A
+  C --> B --> A
 ```
 
 **核心组件：**
