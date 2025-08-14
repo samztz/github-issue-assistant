@@ -110,5 +110,3 @@ GITHUB_TOKEN=your_token_here node server.mjs
 * **可扩展性强**：可方便地增加额外工具（评论、关闭 Issue、拉取 PR 等）
 * **上下文增强**：可在工具执行前后注入 AI 上下文、业务逻辑和验证规则
 * **更好调试体验**：Mastra 提供内建的日志和调试功能，便于开发测试
-
-
