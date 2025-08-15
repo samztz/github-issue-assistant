@@ -7,10 +7,10 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "pnpm -r --filter ./apps/* run build",
-    "dev": "pnpm -r --parallel --filter ./apps/* run dev",
-    "lint": "pnpm -r --filter ./apps/* run lint || echo 'skip lint (some packages may not have lint script yet)'",
-    "typecheck": "pnpm -r --filter ./apps/* run typecheck || echo 'skip typecheck'",
-    "clean": "pnpm -r --filter ./apps/* run clean || echo 'skip clean'"
+    "build": "pnpm -r --filter './apps/*' run build",
+    "dev": "pnpm -r --parallel --filter './apps/*' run dev",
+    "lint": "pnpm -r --filter './apps/*' run lint || echo 'skip lint (some packages may not have lint script yet)'",
+    "typecheck": "pnpm -r --filter './apps/*' run typecheck || echo 'skip typecheck'",
+    "clean": "pnpm -r --filter './apps/*' run clean || echo 'skip clean'"
   }
 }
