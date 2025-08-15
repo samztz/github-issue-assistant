@@ -4,7 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node ./scripts/dev-placeholder.mjs",
-    "build": "node ./scripts/build-placeholder.mjs"
+    "dev": "wrangler dev",
+    "build": "echo \"Workers is built by wrangler at deploy time\"",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "graphql": "^16.11.0",
+    "graphql-yoga": "^5.15.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250813.0",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.30.0"
   }
 }

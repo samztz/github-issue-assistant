@@ -1,1 +1,0 @@
-console.log("API dev placeholder. Workers 实装见 Issue #4。");

@@ -1,0 +1,10 @@
+name = "mcp-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[dev]
+port = 8787
+
+# 部署到你的 Workers 子域（首次 deploy 会使用 *.workers.dev）
+# 部署后要绑定自定义域见下文“自定义域”
