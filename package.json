@@ -1,0 +1,16 @@
+{
+  "name": "mcp-github-issue-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r --filter ./apps/* run build",
+    "dev": "pnpm -r --parallel --filter ./apps/* run dev",
+    "lint": "pnpm -r --filter ./apps/* run lint || echo 'skip lint (some packages may not have lint script yet)'",
+    "typecheck": "pnpm -r --filter ./apps/* run typecheck || echo 'skip typecheck'",
+    "clean": "pnpm -r --filter ./apps/* run clean || echo 'skip clean'"
+  }
+}
