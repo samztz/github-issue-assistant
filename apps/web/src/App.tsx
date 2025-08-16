@@ -2,7 +2,7 @@ import { useState } from "react";
 import { queryLLM } from "./api";
 
 export default function App() {
-  const [text, setText] = useState("Cloudflare Workers + GraphQL + DeepSeek");
+  const [text, setText] = useState("Cloudflare Workers + GraphQL + ChatGPT");
   const [out, setOut] = useState("");
   const [loading, setLoading] = useState(false);
 
