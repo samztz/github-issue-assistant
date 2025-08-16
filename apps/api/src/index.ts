@@ -48,7 +48,7 @@ export default {
     setEnv(env);
 
 
-    const ORIGIN = req.headers.get("Origin") || "*"; // 生产建议白名单校验后回显
+    const ORIGIN = env.FRONTEND_ORIGIN || req.headers.get("Origin") || "*"; // 生产建议白名单校验后回显
     const baseCors = {
       "Access-Control-Allow-Origin": ORIGIN,
       "Access-Control-Allow-Headers": "content-type,authorization",

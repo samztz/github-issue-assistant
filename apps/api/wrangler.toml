@@ -4,14 +4,13 @@ compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 [vars] 
 OPENAI_API_KEY = "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"
-
+FRONTEND_ORIGIN = "https://github-issue-assistant.pages.dev"
 [dev]
 port = 8787
 
 # wrangler.toml (wrangler v3.88.0^)
 [observability.logs]
 enabled = true
-
 
 # 部署到你的 Workers 子域（首次 deploy 会使用 *.workers.dev）
 # 部署后要绑定自定义域见下文“自定义域”

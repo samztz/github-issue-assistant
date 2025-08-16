@@ -29638,7 +29638,7 @@ var yoga = createYoga({
 var src_default = {
   async fetch(req, env2, ctx) {
     setEnv(env2);
-    const ORIGIN = req.headers.get("Origin") || "*";
+    const ORIGIN = env2.FRONTEND_ORIGIN || req.headers.get("Origin") || "*";
     const baseCors = {
       "Access-Control-Allow-Origin": ORIGIN,
       "Access-Control-Allow-Headers": "content-type,authorization",
