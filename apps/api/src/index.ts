@@ -22,8 +22,8 @@ const resolvers = {
 
     llmEcho: async (_: unknown, { prompt }: { prompt: string }, ctx: { env: Env, client: any }) => {
       // 关键：ctx.env 由我们在 createYoga.context 中注入`
-
-      const client = new OpenAI({ apiKey: getEnv().OPENAI_API_KEY });
+      
+      const client = new OpenAI({ apiKey: ctx.env.OPENAI_API_KEY });
       //访问 OPENAI
       console.log(`query openAI: ${prompt}`);
       const response = await client.responses.create({

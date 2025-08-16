@@ -22434,13 +22434,6 @@ function setEnv(env2) {
   currentEnv = env2;
 }
 __name(setEnv, "setEnv");
-function getEnv() {
-  if (!currentEnv) {
-    throw new Error("Env has not been initialized yet.");
-  }
-  return currentEnv;
-}
-__name(getEnv, "getEnv");
 
 // ../../node_modules/.pnpm/openai@5.12.2_ws@8.18.0/node_modules/openai/index.mjs
 init_modules_watch_stub();
@@ -29619,7 +29612,7 @@ var resolvers = {
   Query: {
     hello: /* @__PURE__ */ __name((_, { name }) => `Hello ${name || "World"} from Cloudflare Workers + GraphQL!`, "hello"),
     llmEcho: /* @__PURE__ */ __name(async (_, { prompt }, ctx) => {
-      const client = new OpenAI({ apiKey: getEnv().OPENAI_API_KEY });
+      const client = new OpenAI({ apiKey: ctx.env.OPENAI_API_KEY });
       console.log(`query openAI: ${prompt}`);
       const response = await client.responses.create({
         model: "gpt-5",
