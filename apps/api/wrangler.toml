@@ -8,5 +8,10 @@ OPENAI_API_KEY = "sk-proj--ee5icCbTQSPZTcdzSNvme4S7uiqb8io4WP-9C2dGV5G9TCMNgAEaa
 [dev]
 port = 8787
 
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
+
+
 # 部署到你的 Workers 子域（首次 deploy 会使用 *.workers.dev）
 # 部署后要绑定自定义域见下文“自定义域”
