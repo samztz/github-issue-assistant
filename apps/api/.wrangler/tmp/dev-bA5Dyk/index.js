@@ -22434,6 +22434,13 @@ function setEnv(env2) {
   currentEnv = env2;
 }
 __name(setEnv, "setEnv");
+function getEnv() {
+  if (!currentEnv) {
+    throw new Error("Env has not been initialized yet.");
+  }
+  return currentEnv;
+}
+__name(getEnv, "getEnv");
 
 // ../../node_modules/.pnpm/openai@5.12.2_ws@8.18.0/node_modules/openai/index.mjs
 init_modules_watch_stub();
@@ -29612,14 +29619,16 @@ var resolvers = {
   Query: {
     hello: /* @__PURE__ */ __name((_, { name }) => `Hello ${name || "World"} from Cloudflare Workers + GraphQL!`, "hello"),
     llmEcho: /* @__PURE__ */ __name(async (_, { prompt }, ctx) => {
-      const client = new OpenAI({ apiKey: ctx.env.OPENAI_API_KEY });
+      const apiKey = getEnv().OPENAI_API_KEY;
+      if (!apiKey) return "(no API key configured)";
+      const client = new OpenAI({ apiKey });
       console.log(`query openAI: ${prompt}`);
-      const response = await client.responses.create({
+      const response = await client.chat.completions.create({
         model: "gpt-5",
-        input: prompt
+        // 使用最新的 GPT-5 模型
+        messages: [{ role: "user", content: `Summarize in 1 sentence: ${prompt}` }]
       });
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content ?? "(no response)";
+      return response.choices?.[0]?.message?.content ?? "(no response)";
     }, "llmEcho")
   }
 };
@@ -29642,7 +29651,7 @@ var src_default = {
       return new Response(null, { status: 204, headers: baseCors });
     }
     try {
-      const resp = await yoga.fetch(req, env2, ctx);
+      const resp = await yoga.fetch(req, { env: env2 }, ctx);
       const headers = new Headers(resp.headers);
       for (const [k, v] of Object.entries(baseCors)) headers.set(k, v);
       return new Response(resp.body, { status: resp.status, headers });

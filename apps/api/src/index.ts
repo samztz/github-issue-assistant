@@ -20,19 +20,20 @@ const resolvers = {
     hello: (_: unknown, { name }: { name?: string }) =>
       `Hello ${name || "World"} from Cloudflare Workers + GraphQL!`,
 
-    llmEcho: async (_: unknown, { prompt }: { prompt: string }, ctx: { env: Env, client: any }) => {
-      // 关键：ctx.env 由我们在 createYoga.context 中注入`
+    llmEcho: async (_: unknown, { prompt }: { prompt: string }, ctx: { env: Env }) => {
+      // 使用 getEnv() 获取环境变量
+      const apiKey = getEnv().OPENAI_API_KEY;
+      if (!apiKey) return "(no API key configured)";
       
-      const client = new OpenAI({ apiKey: ctx.env.OPENAI_API_KEY });
-      //访问 OPENAI
+      const client = new OpenAI({ apiKey });
       console.log(`query openAI: ${prompt}`);
-      const response = await client.responses.create({
-        model: "gpt-5",
-        input: prompt,
+      
+      const response = await client.chat.completions.create({
+        model: "gpt-5",  // 使用最新的 GPT-5 模型
+        messages: [{ role: "user", content: `Summarize in 1 sentence: ${prompt}` }],
       });
 
-      const data = (await response.json()) as any;
-      return data.choices?.[0]?.message?.content ?? "(no response)";
+      return response.choices?.[0]?.message?.content ?? "(no response)";
     },
   },
 };
@@ -61,7 +62,7 @@ export default {
     }
 
     try {
-      const resp = await yoga.fetch(req, env, ctx);  // 这里可能抛错
+      const resp = await yoga.fetch(req, { env }, ctx);  // 正确传递 env
       const headers = new Headers(resp.headers);
       for (const [k, v] of Object.entries(baseCors)) headers.set(k, v as string);
       return new Response(resp.body, { status: resp.status, headers });
