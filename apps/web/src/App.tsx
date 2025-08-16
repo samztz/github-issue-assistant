@@ -1,35 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { queryLLM } from "./api";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [text, setText] = useState("Cloudflare Workers + GraphQL + DeepSeek");
+  const [out, setOut] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSummarize() {
+    setLoading(true); setOut("");
+    try { setOut(await queryLLM(text)); }
+    catch (e:any) { setOut(`Error: ${e.message || e}`); }
+    finally { setLoading(false); }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <main style={{ maxWidth: 720, margin: "40px auto", fontFamily: "ui-sans-serif, system-ui" }}>
+      <h1>LLM Echo (Workers GraphQL)</h1>
+      <p style={{color:"#666"}}>API: <code>{import.meta.env.VITE_API_BASE || "/graphql (relative)"}</code></p>
 
-export default App
+      <textarea rows={5} value={text} onChange={e=>setText(e.target.value)}
+        style={{width:"100%",padding:12,borderRadius:8,border:"1px solid #ddd"}} />
+
+      <div style={{marginTop:12,display:"flex",gap:8}}>
+        <button onClick={onSummarize} disabled={loading}
+          style={{padding:"8px 16px",borderRadius:8,border:"1px solid #333"}}>
+          {loading ? "Summarizing..." : "Summarize"}
+        </button>
+        <button onClick={()=>setOut("")}
+          style={{padding:"8px 16px",borderRadius:8,border:"1px solid #aaa"}}>Clear</button>
+      </div>
+
+      <pre style={{marginTop:16,background:"#fafafa",padding:12,borderRadius:8,whiteSpace:"pre-wrap"}}>
+        {out || "Result will appear here..."}
+      </pre>
+    </main>
+  );
+}

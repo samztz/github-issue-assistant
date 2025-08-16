@@ -12,5 +12,10 @@
     "lint": "pnpm -r --filter './apps/*' run lint || echo 'skip lint (some packages may not have lint script yet)'",
     "typecheck": "pnpm -r --filter './apps/*' run typecheck || echo 'skip typecheck'",
     "clean": "pnpm -r --filter './apps/*' run clean || echo 'skip clean'"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^5.9.2"
   }
 }
