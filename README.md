@@ -180,3 +180,120 @@ pnpm -F ./apps/mcp run try:auto -- '{"owner":"myorg","repo":"myrepo","title":"Fe
 ```
 
 2. 重启 Claude Desktop，即可在对话中使用 GitHub Issue 管理功能！
+
+---
+
+## 🌐 HTTP MCP Endpoints
+
+除了标准的 MCP 协议支持，本项目还提供了 HTTP REST API 接口，方便 Web 前端和其他应用集成。
+
+### 🔗 API Base URL
+
+- **开发环境**: `http://localhost:8787` (使用 `wrangler dev`)
+- **生产环境**: `https://mcp-api.tingzhuangzhou.workers.dev`
+
+### 📡 可用端点
+
+| 端点 | 方法 | 功能描述 | 请求体 |
+|------|------|---------|--------|
+| `/mcp/github_list_issues` | POST | 列出仓库 Issues | `{"owner": "org", "repo": "name", "state": "open"}` |
+| `/mcp/github_create_issue` | POST | 创建新 Issue | `{"owner": "org", "repo": "name", "title": "标题", "body": "内容"}` |
+| `/mcp/github_add_labels` | POST | 添加标签 | `{"owner": "org", "repo": "name", "number": 42, "labels": ["bug"]}` |
+| `/mcp/github_triage` | POST | AI 智能分析 | `{"title": "Issue 标题", "body": "Issue 内容"}` |
+| `/mcp/github_auto_triage_and_create` | POST | 自动分析并创建 | `{"owner": "org", "repo": "name", "title": "标题", "body": "内容"}` |
+
+### 📝 示例调用
+
+```bash
+# 列出 GitHub Issues
+curl -X POST "https://mcp-api.tingzhuangzhou.workers.dev/mcp/github_list_issues" \
+  -H "Content-Type: application/json" \
+  -d '{"owner": "microsoft", "repo": "vscode", "state": "open"}'
+
+# AI 分析 Issue
+curl -X POST "https://mcp-api.tingzhuangzhou.workers.dev/mcp/github_triage" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Memory leak in extension", "body": "Detailed description..."}'
+
+# 自动分析并创建 Issue
+curl -X POST "https://mcp-api.tingzhuangzhou.workers.dev/mcp/github_auto_triage_and_create" \
+  -H "Content-Type: application/json" \
+  -d '{"owner": "myorg", "repo": "myrepo", "title": "Bug report", "body": "Steps to reproduce..."}'
+```
+
+### 🔑 环境变量配置
+
+为了使 HTTP MCP 端点正常工作，需要在 Cloudflare Workers 环境中配置以下变量：
+
+| 变量名 | 必需 | 描述 | 示例值 |
+|--------|------|------|--------|
+| `GITHUB_TOKEN` | ✅ | GitHub Personal Access Token | `github_pat_xxxxxxxxxx` |
+| `OPENAI_API_KEY` | ✅ | OpenAI API Key (用于 AI 分析) | `sk-xxxxxxxxxx` |
+| `FRONTEND_ORIGIN` | ❌ | 前端域名 (CORS 配置) | `https://github-issue-assistant.pages.dev` |
+
+#### 🛠️ 配置步骤
+
+1. **本地开发**：在 `apps/api/.env` 文件中设置
+   ```bash
+   GITHUB_TOKEN=github_pat_xxxxxxxxxx
+   OPENAI_API_KEY=sk-xxxxxxxxxx
+   ```
+
+2. **生产部署**：在 Cloudflare Workers 管理面板中设置环境变量
+   - 进入 Worker 设置页面
+   - 添加环境变量
+   - 重新部署 Worker
+
+### 🌍 CORS 支持
+
+所有 HTTP MCP 端点都自动配置了 CORS，支持跨域请求：
+
+```javascript
+{
+  "Access-Control-Allow-Origin": "*", // 或配置的 FRONTEND_ORIGIN
+  "Access-Control-Allow-Headers": "content-type,authorization",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
+}
+```
+
+### 📋 错误处理
+
+API 返回标准的 JSON 错误格式：
+
+```json
+{
+  "error": "GitHub 401: Bad credentials"
+}
+```
+
+常见错误：
+- `GITHUB_TOKEN missing` - 未配置 GitHub Token
+- `OPENAI_API_KEY missing` - 未配置 OpenAI API Key
+- `owner/repo required` - 缺少必需参数
+- `GitHub 401: Bad credentials` - GitHub Token 无效或过期
+
+### 🎯 前端集成
+
+参考 `apps/web/src/api.ts` 中的实现：
+
+```typescript
+// 通用 MCP 调用函数
+export async function mcp(path: string, payload: any) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error?.error || response.statusText);
+  }
+  
+  return response.json();
+}
+
+// 具体的 GitHub 操作
+export const githubAutoTriageAndCreate = (params) => 
+  mcp("/mcp/github_auto_triage_and_create", params);
+```
