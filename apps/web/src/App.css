@@ -5,7 +5,7 @@
 
 body {
   margin: 0;
-  padding: 0;
+  padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -14,25 +14,29 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #root {
+  width: 100%;
   height: 100vh;
-  margin: 0;
-  padding: 0;
-  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 应用主容器 */
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  width: 100%;
+  height: 90vh;
   max-width: 1200px;
-  margin: 0 auto;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border-radius: 0 0 20px 20px;
+  border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
@@ -373,9 +377,14 @@ body {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+  
   .app {
     border-radius: 0;
     height: 100vh;
+    width: 100vw;
   }
   
   .app-header {
