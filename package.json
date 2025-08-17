@@ -14,6 +14,7 @@
     "clean": "pnpm -r --filter './apps/*' run clean || echo 'skip clean'"
   },
   "devDependencies": {
+    "@types/node": "^20.19.11",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "typescript": "^5.9.2"

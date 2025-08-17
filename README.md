@@ -113,3 +113,70 @@ GITHUB_TOKEN=your_token_here node server.mjs
 * **可扩展性强**：可方便地增加额外工具（评论、关闭 Issue、拉取 PR 等）
 * **上下文增强**：可在工具执行前后注入 AI 上下文、业务逻辑和验证规则
 * **更好调试体验**：Mastra 提供内建的日志和调试功能，便于开发测试
+
+---
+
+## 🚀 Mastra + MCP 使用指南
+
+### 📋 环境变量设置
+
+在 `apps/mcp/.env` 文件中配置必要的环境变量：
+
+```bash
+# GitHub API Token (必需)
+GITHUB_TOKEN=github_pat_xxxxxxxxxx
+
+# OpenAI API Key (可选，用于 AI 功能)
+OPENAI_API_KEY=sk-xxxxxxxxxx
+```
+
+### 🏃‍♂️ 启动命令
+
+```bash
+# 启动 MCP 服务器
+pnpm -F ./apps/mcp dev
+
+# 或者从 apps/mcp 目录
+cd apps/mcp && pnpm dev
+```
+
+### 🧪 测试命令
+
+```bash
+# 列出所有可用工具
+pnpm -F ./apps/mcp run tools
+
+# 测试 AI 分析功能
+pnpm -F ./apps/mcp run try:triage -- '{"title":"Bug in login form", "body":"Users cannot submit the form"}'
+
+# 测试自动分拣并创建 Issue
+pnpm -F ./apps/mcp run try:auto -- '{"owner":"myorg","repo":"myrepo","title":"Feature request: dark mode"}'
+```
+
+### 🔧 可用工具列表
+
+| 工具名称 | 功能描述 | 参数 |
+|---------|---------|------|
+| `github_list_issues` | 列出仓库 Issues | `owner`, `repo`, `state?`, `labels?` |
+| `github_create_issue` | 创建新 Issue | `owner`, `repo`, `title`, `body?`, `labels?` |
+| `github_add_labels` | 给 Issue 添加标签 | `owner`, `repo`, `number`, `labels` |
+| `github_triage` | AI 智能分析 Issue | `title`, `body?` |
+| `github_auto_triage_and_create` | AI 分析 + 自动创建 Issue | `owner`, `repo`, `title`, `body?` |
+
+### 📱 与 Claude Desktop 集成
+
+1. 在 Claude Desktop 配置文件中添加：
+
+```json
+{
+  "mcpServers": {
+    "github-issue-assistant": {
+      "command": "pnpm",
+      "args": ["-F", "./apps/mcp", "dev"],
+      "cwd": "/path/to/github-issue-assistant"
+    }
+  }
+}
+```
+
+2. 重启 Claude Desktop，即可在对话中使用 GitHub Issue 管理功能！

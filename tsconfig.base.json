@@ -5,11 +5,9 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "@app/web/*": ["apps/web/src/*"],
-      "@app/api/*": ["apps/api/src/*"],
-      "@/*": ["apps/web/src/*"]
-    }
+    "resolvePackageJsonExports": true,
+    "resolvePackageJsonImports": true,
+    "types": ["node"],
+    "baseUrl": "."
   }
 }

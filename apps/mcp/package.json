@@ -1,0 +1,31 @@
+{
+  "name": "@app/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "github-issue-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test:github": "node scripts/test-github.js",
+    "tools": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.list",
+    "try:triage": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_triage --params",
+    "try:auto": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_auto_triage_and_create --params"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.15",
+    "@mastra/core": "^0.13.2",
+    "@modelcontextprotocol/sdk": "^1.17.3",
+    "dotenv": "^17.2.1",
+    "undici": "^7.13.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.11",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2"
+  }
+}

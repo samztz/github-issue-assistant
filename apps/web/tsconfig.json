@@ -6,6 +6,8 @@
     "types": ["vite/client"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "verbatimModuleSyntax": true,
+    "composite": true,
     "noEmit": true
   },
   "include": ["src", "vite.config.*", "vite-env.d.ts", "env.d.ts"]

@@ -4,6 +4,8 @@
     "lib": ["ES2022", "WebWorker"],
     "types": ["@cloudflare/workers-types"],
     "module": "ESNext",
+    "verbatimModuleSyntax": true,
+    "composite": true,
     "moduleResolution": "Bundler",
     "noEmit": true
   },

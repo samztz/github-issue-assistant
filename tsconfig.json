@@ -1,7 +1,8 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/api" },
-    { "path": "./packages/web" }
+    { "path": "./apps/api" },
+    { "path": "./apps/web" },
+    { "path": "./apps/mcp" }
   ]
 }
