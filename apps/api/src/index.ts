@@ -2,10 +2,20 @@
 import { createYoga, createSchema } from "graphql-yoga";
 import { setEnv, getEnv } from "./env";
 import OpenAI from "openai";
+import {
+  http_github_list_issues,
+  http_github_create_issue,
+  http_github_add_labels,
+  http_github_triage,
+  http_github_auto_triage_and_create,
+  type Env as McpEnv,
+} from "./mcp";
 
 
-export interface Env {
+export interface Env extends McpEnv {
   OPENAI_API_KEY?: string;
+  FRONTEND_ORIGIN?: string;
+  GITHUB_TOKEN?: string;
 }
 
 const typeDefs = /* GraphQL */ `
@@ -44,10 +54,16 @@ const yoga = createYoga<{ env: Env }>({
   landingPage: true,
 });
 
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext) {
     setEnv(env);
-
 
     const ORIGIN = env.FRONTEND_ORIGIN || req.headers.get("Origin") || "*"; // 生产建议白名单校验后回显
     const baseCors = {
@@ -61,6 +77,42 @@ export default {
       return new Response(null, { status: 204, headers: baseCors });
     }
 
+    // ---- 路由：/mcp/* ----
+    const url = new URL(req.url);
+    if (req.method === "POST" && url.pathname.startsWith("/mcp/")) {
+      try {
+        const payload = await req.json().catch(() => ({}));
+        let result: unknown;
+        switch (url.pathname) {
+          case "/mcp/github_list_issues":
+            result = await http_github_list_issues(env, payload);
+            break;
+          case "/mcp/github_create_issue":
+            result = await http_github_create_issue(env, payload);
+            break;
+          case "/mcp/github_add_labels":
+            result = await http_github_add_labels(env, payload);
+            break;
+          case "/mcp/github_triage":
+            result = await http_github_triage(env, payload);
+            break;
+          case "/mcp/github_auto_triage_and_create":
+            result = await http_github_auto_triage_and_create(env, payload);
+            break;
+          default:
+            return new Response("Not Found", { status: 404, headers: baseCors });
+        }
+        const res = json(result, 200);
+        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
+        return res;
+      } catch (e: any) {
+        const res = json({ error: e?.message || "Internal error" }, 500);
+        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
+        return res;
+      }
+    }
+
+    // ---- 其他路由走 GraphQL ----
     try {
       const resp = await yoga.fetch(req, { env }, ctx);  // 正确传递 env
       const headers = new Headers(resp.headers);

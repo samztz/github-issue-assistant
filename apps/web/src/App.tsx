@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
 import { useChat } from './hooks/useChat';
+import { githubAutoTriageAndCreate } from './api';
 import './App.css';
 
 export default function App() {
@@ -16,6 +17,20 @@ export default function App() {
     scrollToBottom();
   }, [messages]);
 
+  const testMCPFunction = async () => {
+    try {
+      const result = await githubAutoTriageAndCreate({
+        owner: "samztz",
+        repo: "github-issue-assistant", 
+        title: "Bug: clicking save throws 500",
+        body: "1) open\n2) click save\n3) 500; expected 200"
+      });
+      sendMessage(`MCP Test Result: ${JSON.stringify(result, null, 2)}`);
+    } catch (error: any) {
+      sendMessage(`MCP Test Error: ${error.message}`);
+    }
+  };
+
   return (
     <div className="app">
       <header className="app-header">
@@ -26,6 +41,18 @@ export default function App() {
             <span className="api-info">
               API: {import.meta.env.VITE_API_BASE || '/graphql (relative)'}
             </span>
+            <button 
+              onClick={testMCPFunction} 
+              className="clear-button" 
+              style={{
+                marginRight: '10px',
+                backgroundColor: '#ff6b6b',
+                color: 'white',
+                fontWeight: 'bold'
+              }}
+            >
+              🧪 Test MCP
+            </button>
             <button onClick={clearChat} className="clear-button">
               🗑️ Clear Chat
             </button>
@@ -53,6 +80,12 @@ export default function App() {
                     className="example-button"
                   >
                     "What is the difference between REST and GraphQL?"
+                  </button>
+                  <button 
+                    onClick={testMCPFunction}
+                    className="example-button"
+                  >
+                    "🧪 Test GitHub MCP Integration"
                   </button>
                 </div>
               </div>

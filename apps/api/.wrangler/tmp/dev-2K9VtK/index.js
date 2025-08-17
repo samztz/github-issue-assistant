@@ -1136,13 +1136,13 @@ var require_global_ponyfill = __commonJS({
   }
 });
 
-// .wrangler/tmp/bundle-lY6kud/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-ASXwI0/middleware-loader.entry.ts
 init_modules_watch_stub();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 
-// .wrangler/tmp/bundle-lY6kud/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-ASXwI0/middleware-insertion-facade.js
 init_modules_watch_stub();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
@@ -23898,8 +23898,8 @@ async function defaultParseResponse(client, props) {
     const mediaType = contentType?.split(";")[0]?.trim();
     const isJSON = mediaType?.includes("application/json") || mediaType?.endsWith("+json");
     if (isJSON) {
-      const json = await response.json();
-      return addRequestID(json, response);
+      const json2 = await response.json();
+      return addRequestID(json2, response);
     }
     const text = await response.text();
     return text;
@@ -29605,6 +29605,131 @@ init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 
+// src/mcp.ts
+init_modules_watch_stub();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+init_performance2();
+var GITHUB_API = "https://api.github.com";
+function ghHeaders(env2) {
+  return {
+    Authorization: `Bearer ${env2.GITHUB_TOKEN ?? ""}`,
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    "User-Agent": "mcp-github-issue-assistant"
+  };
+}
+__name(ghHeaders, "ghHeaders");
+async function gh(url, env2, init) {
+  const r = await fetch(url, {
+    ...init,
+    headers: { ...ghHeaders(env2), ...init?.headers || {} }
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${text}`);
+  return text ? JSON.parse(text) : void 0;
+}
+__name(gh, "gh");
+async function http_github_list_issues(env2, body) {
+  const { owner, repo, state = "open", labels } = body ?? {};
+  if (!owner || !repo) throw new Error("owner/repo required");
+  const u = new URL(`${GITHUB_API}/repos/${owner}/${repo}/issues`);
+  u.searchParams.set("state", state);
+  if (labels) u.searchParams.set("labels", labels);
+  u.searchParams.set("per_page", "20");
+  const items = await gh(u.toString(), env2);
+  const out = items.filter((i) => !i.pull_request).map((i) => ({
+    number: i.number,
+    title: i.title,
+    state: i.state,
+    labels: (i.labels || []).map((l) => l.name),
+    url: i.html_url
+  }));
+  return out;
+}
+__name(http_github_list_issues, "http_github_list_issues");
+async function http_github_create_issue(env2, body) {
+  const { owner, repo, title: title2, labels, ...rest } = body ?? {};
+  if (!owner || !repo || !title2) throw new Error("owner/repo/title required");
+  const created = await gh(
+    `${GITHUB_API}/repos/${owner}/${repo}/issues`,
+    env2,
+    { method: "POST", body: JSON.stringify({ title: title2, labels, ...rest }) }
+  );
+  return { number: created.number, url: created.html_url };
+}
+__name(http_github_create_issue, "http_github_create_issue");
+async function http_github_add_labels(env2, body) {
+  const { owner, repo, number, labels } = body ?? {};
+  if (!owner || !repo || !number || !Array.isArray(labels) || !labels.length)
+    throw new Error("owner/repo/number/labels[] required");
+  const res = await gh(
+    `${GITHUB_API}/repos/${owner}/${repo}/issues/${number}/labels`,
+    env2,
+    { method: "POST", body: JSON.stringify({ labels }) }
+  );
+  return res.map((l) => l.name);
+}
+__name(http_github_add_labels, "http_github_add_labels");
+async function triageWithOpenAI(env2, title2, body) {
+  const apiKey = env2.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY missing");
+  const sys = "You are a GitHub issue triage assistant. Return strict JSON with keys: summary, priority(P0|P1|P2|P3), suggestedLabels (array).";
+  const user = `Title: ${title2}
+
+Body:
+${body || ""}
+
+Return JSON exactly: {"summary": string, "priority": "P0"|"P1"|"P2"|"P3", "suggestedLabels": string[]}`;
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: user }
+      ]
+    })
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${text}`);
+  try {
+    const data = JSON.parse(text);
+    const content = data.choices?.[0]?.message?.content || "{}";
+    return JSON.parse(content);
+  } catch {
+    return { summary: text.slice(0, 200), priority: "P2", suggestedLabels: ["needs-triage"] };
+  }
+}
+__name(triageWithOpenAI, "triageWithOpenAI");
+async function http_github_triage(env2, body) {
+  const { title: title2, ...rest } = body ?? {};
+  if (!title2) throw new Error("title required");
+  return triageWithOpenAI(env2, title2, rest.body);
+}
+__name(http_github_triage, "http_github_triage");
+async function http_github_auto_triage_and_create(env2, body) {
+  const { owner, repo, title: title2, ...rest } = body ?? {};
+  if (!owner || !repo || !title2) throw new Error("owner/repo/title required");
+  const tri = await triageWithOpenAI(env2, title2, rest.body);
+  const labels = Array.from(
+    /* @__PURE__ */ new Set([...tri.suggestedLabels || [], "ai-triaged", String(tri.priority || "P2").toLowerCase()])
+  );
+  const finalTitle = `[${tri.priority || "P2"}] ${title2}`;
+  const finalBody = `**AI Summary**: ${tri.summary}
+
+**Priority**: ${tri.priority}
+**Suggested Labels**: ${labels.join(", ")}
+
+---
+${rest.body || "_(no body)_"}`;
+  const created = await http_github_create_issue(env2, { owner, repo, title: finalTitle, body: finalBody, labels });
+  return { ...created, triage: tri };
+}
+__name(http_github_auto_triage_and_create, "http_github_auto_triage_and_create");
+
 // src/index.ts
 var typeDefs = (
   /* GraphQL */
@@ -29637,6 +29762,13 @@ var yoga = createYoga({
   graphqlEndpoint: "/graphql",
   landingPage: true
 });
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(json, "json");
 var src_default = {
   async fetch(req, env2, ctx) {
     setEnv(env2);
@@ -29649,6 +29781,39 @@ var src_default = {
     };
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: baseCors });
+    }
+    const url = new URL(req.url);
+    if (req.method === "POST" && url.pathname.startsWith("/mcp/")) {
+      try {
+        const payload = await req.json().catch(() => ({}));
+        let result;
+        switch (url.pathname) {
+          case "/mcp/github_list_issues":
+            result = await http_github_list_issues(env2, payload);
+            break;
+          case "/mcp/github_create_issue":
+            result = await http_github_create_issue(env2, payload);
+            break;
+          case "/mcp/github_add_labels":
+            result = await http_github_add_labels(env2, payload);
+            break;
+          case "/mcp/github_triage":
+            result = await http_github_triage(env2, payload);
+            break;
+          case "/mcp/github_auto_triage_and_create":
+            result = await http_github_auto_triage_and_create(env2, payload);
+            break;
+          default:
+            return new Response("Not Found", { status: 404, headers: baseCors });
+        }
+        const res = json(result, 200);
+        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v);
+        return res;
+      } catch (e) {
+        const res = json({ error: e?.message || "Internal error" }, 500);
+        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v);
+        return res;
+      }
     }
     try {
       const resp = await yoga.fetch(req, { env: env2 }, ctx);
@@ -29713,7 +29878,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-lY6kud/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-ASXwI0/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -29749,7 +29914,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-lY6kud/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-ASXwI0/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
