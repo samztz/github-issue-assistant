@@ -13,7 +13,13 @@
     "test:github": "node scripts/test-github.js",
     "tools": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.list",
     "try:triage": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_triage --params",
-    "try:auto": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_auto_triage_and_create --params"
+    "try:auto": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_auto_triage_and_create --params",
+    "mcp:dev": "pnpm --filter ./apps/mcp dev",
+    "mcp:test:list": "pnpm dlx mcp-cli call stdio --command \"pnpm --filter ./apps/mcp dev\" tools.list",
+    "mcp:test:auto": "pnpm dlx mcp-cli call stdio --command \"pnpm --filter ./apps/mcp dev\" tools.call github_auto_triage_and_create --params",
+    "api:tail": "pnpm --filter ./apps/api exec wrangler tail",
+    "api:hello": "curl -s -X POST \"$API\" -H 'content-type: application/json' -d '{\"query\":\"{ hello(name:\\\"samztz\\\") }\"}'",
+    "api:echo": "curl -s -X POST \"$API\" -H 'content-type: application/json' -d '{\"query\":\"{ llmEcho(prompt:\\\"Say hi\\\") }\"}'"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.15",

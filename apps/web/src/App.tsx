@@ -1,38 +1,76 @@
-import { useState } from "react";
-import { queryLLM } from "./api";
+import { useEffect, useRef } from 'react';
+import { ChatMessage } from './components/ChatMessage';
+import { ChatInput } from './components/ChatInput';
+import { useChat } from './hooks/useChat';
+import './App.css';
 
 export default function App() {
-  const [text, setText] = useState("Cloudflare Workers + GraphQL + ChatGPT");
-  const [out, setOut] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { messages, isLoading, sendMessage, clearChat } = useChat();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  async function onSummarize() {
-    setLoading(true); setOut("");
-    try { setOut(await queryLLM(text)); }
-    catch (e:any) { setOut(`Error: ${e.message || e}`); }
-    finally { setLoading(false); }
-  }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", fontFamily: "ui-sans-serif, system-ui" }}>
-      <h1>LLM Echo (Workers GraphQL)</h1>
-      <p style={{color:"#666"}}>API: <code>{import.meta.env.VITE_API_BASE || "/graphql (relative)"}</code></p>
+    <div className="app">
+      <header className="app-header">
+        <div className="header-content">
+          <h1>🤖 AI Assistant</h1>
+          <p>Powered by Cloudflare Workers + GraphQL + GPT</p>
+          <div className="header-actions">
+            <span className="api-info">
+              API: {import.meta.env.VITE_API_BASE || '/graphql (relative)'}
+            </span>
+            <button onClick={clearChat} className="clear-button">
+              🗑️ Clear Chat
+            </button>
+          </div>
+        </div>
+      </header>
 
-      <textarea rows={5} value={text} onChange={e=>setText(e.target.value)}
-        style={{width:"100%",padding:12,borderRadius:8,border:"1px solid #ddd"}} />
+      <main className="chat-container">
+        <div className="chat-messages">
+          {messages.length === 0 && (
+            <div className="welcome-message">
+              <div className="welcome-content">
+                <h2>👋 Welcome!</h2>
+                <p>I'm your AI assistant. Ask me anything or request a summary!</p>
+                <div className="example-prompts">
+                  <p>Try these examples:</p>
+                  <button 
+                    onClick={() => sendMessage("Explain how React hooks work")}
+                    className="example-button"
+                  >
+                    "Explain how React hooks work"
+                  </button>
+                  <button 
+                    onClick={() => sendMessage("What is the difference between REST and GraphQL?")}
+                    className="example-button"
+                  >
+                    "What is the difference between REST and GraphQL?"
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {messages.map((message) => (
+            <ChatMessage key={message.id} message={message} />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
 
-      <div style={{marginTop:12,display:"flex",gap:8}}>
-        <button onClick={onSummarize} disabled={loading}
-          style={{padding:"8px 16px",borderRadius:8,border:"1px solid #333"}}>
-          {loading ? "Summarizing..." : "Summarize"}
-        </button>
-        <button onClick={()=>setOut("")}
-          style={{padding:"8px 16px",borderRadius:8,border:"1px solid #aaa"}}>Clear</button>
-      </div>
-
-      <pre style={{marginTop:16,background:"#fafafa",padding:12,borderRadius:8,whiteSpace:"pre-wrap"}}>
-        {out || "Result will appear here..."}
-      </pre>
-    </main>
+        <ChatInput
+          onSend={sendMessage}
+          disabled={isLoading}
+          placeholder={isLoading ? "AI is thinking..." : "Ask me anything..."}
+        />
+      </main>
+    </div>
   );
 }
