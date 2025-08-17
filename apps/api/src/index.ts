@@ -10,6 +10,7 @@ import {
   http_github_auto_triage_and_create,
   type Env as McpEnv,
 } from "./mcp";
+import { runAgent } from "./agent";
 
 
 export interface Env extends McpEnv {
@@ -77,8 +78,28 @@ export default {
       return new Response(null, { status: 204, headers: baseCors });
     }
 
-    // ---- 路由：/mcp/* ----
+    // ---- 路由：/agent/run ----
     const url = new URL(req.url);
+    if (req.method === "POST" && url.pathname === "/agent/run") {
+      try {
+        const { input } = await req.json();
+        if (!input || typeof input !== "string") {
+          const res = json({ error: "input (string) required" }, 400);
+          for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
+          return res;
+        }
+        const result = await runAgent(input, env, req);
+        const res = json(result, 200);
+        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
+        return res;
+      } catch (e: any) {
+        const res = json({ error: e?.message || "Agent failed" }, 500);
+        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
+        return res;
+      }
+    }
+
+    // ---- 路由：/mcp/* ----
     if (req.method === "POST" && url.pathname.startsWith("/mcp/")) {
       try {
         const payload = await req.json().catch(() => ({}));
