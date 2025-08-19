@@ -10,7 +10,6 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "test:github": "node scripts/test-github.js",
     "tools": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.list",
     "try:triage": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_triage --params",
     "try:auto": "pnpm dlx mcp-cli call stdio --command \"pnpm -F ./apps/mcp dev\" tools.call github_auto_triage_and_create --params",
