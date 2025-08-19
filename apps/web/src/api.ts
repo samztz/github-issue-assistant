@@ -68,3 +68,15 @@ export const githubAddLabels = (p: {
 export const githubTriage = (p: {
   title: string; body?: string;
 }) => mcp("/mcp/github_triage", p);
+
+// GitHub Agent - 自然语言处理
+export async function runAgent(input: string) {
+  const r = await fetch(`${API_BASE}/agent/run`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ input }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j?.error || r.statusText);
+  return j;
+}
