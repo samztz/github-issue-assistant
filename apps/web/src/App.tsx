@@ -11,7 +11,7 @@ export default function App() {
   
   // GitHub Agent 状态
   const [isAgentMode, setIsAgentMode] = useState(false);
-  const [agentInput, setAgentInput] = useState("请在 samztz/test-repo 新建一个 issue：标题：登录页面报错，正文：用户点击登录按钮时出现500错误，先做 AI triage");
+  const [agentInput, setAgentInput] = useState("请在 samztz/github-issue-assistant 新建一个 issue：标题：登录页面报错，正文：用户点击登录按钮时出现500错误，先做 AI triage");
   const [agentOutput, setAgentOutput] = useState("");
   const [agentLoading, setAgentLoading] = useState(false);
 

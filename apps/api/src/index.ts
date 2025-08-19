@@ -1,150 +1,130 @@
-// apps/api/src/index.ts
+/**
+ * @fileoverview Main entry point for GitHub Issue Assistant API
+ * @description Cloudflare Workers entry point with routing and CORS handling
+ */
+
 import { createYoga, createSchema } from "graphql-yoga";
-import { setEnv, getEnv } from "./env";
-import OpenAI from "openai";
+import { setEnv } from "./env";
+import { typeDefs, resolvers } from "./graphql/schema";
+import { buildCorsHeaders, applyCors, createOptionsResponse } from "./core/cors";
+import { json, badRequest, internalError, notFound } from "./core/http";
+import { runAgent } from "./agent/runAgent";
 import {
   http_github_list_issues,
   http_github_create_issue,
   http_github_add_labels,
   http_github_triage,
   http_github_auto_triage_and_create,
-  type Env as McpEnv,
-} from "./mcp";
-import { runAgent } from "./agent";
+} from "./mcp/handlers";
+import { ApiError, type Env } from "./core/types";
 
-
-export interface Env extends McpEnv {
-  OPENAI_API_KEY?: string;
-  FRONTEND_ORIGIN?: string;
-  GITHUB_TOKEN?: string;
-}
-
-const typeDefs = /* GraphQL */ `
-  type Query {
-    hello(name: String): String!
-    llmEcho(prompt: String!): String!
-  }
-`;
-
-const resolvers = {
-  Query: {
-    hello: (_: unknown, { name }: { name?: string }) =>
-      `Hello ${name || "World"} from Cloudflare Workers + GraphQL!`,
-
-    llmEcho: async (_: unknown, { prompt }: { prompt: string }, ctx: { env: Env }) => {
-      // 使用 getEnv() 获取环境变量
-      const apiKey = getEnv().OPENAI_API_KEY;
-      if (!apiKey) return "(no API key configured)";
-      
-      const client = new OpenAI({ apiKey });
-      console.log(`query openAI: ${prompt}`);
-      
-      const response = await client.chat.completions.create({
-        model: "gpt-5",  // 使用最新的 GPT-5 模型
-        messages: [{ role: "user", content: `Summarize in 1 sentence: ${prompt}` }],
-      });
-
-      return response.choices?.[0]?.message?.content ?? "(no response)";
-    },
-  },
-};
-
+// Initialize GraphQL server
 const yoga = createYoga<{ env: Env }>({
   schema: createSchema({ typeDefs, resolvers }),
   graphqlEndpoint: "/graphql",
   landingPage: true,
 });
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+/**
+ * Route MCP HTTP requests to appropriate handlers
+ * @param pathname - Request pathname
+ * @param payload - Request payload
+ * @param env - Environment variables
+ * @returns Handler result
+ * @throws ApiError if route not found
+ */
+async function routeMcpRequest(
+  pathname: string, 
+  payload: any, 
+  env: Env
+): Promise<unknown> {
+  switch (pathname) {
+    case "/mcp/github_list_issues":
+      return await http_github_list_issues(env, payload);
+    case "/mcp/github_create_issue":
+      return await http_github_create_issue(env, payload);
+    case "/mcp/github_add_labels":
+      return await http_github_add_labels(env, payload);
+    case "/mcp/github_triage":
+      return await http_github_triage(env, payload);
+    case "/mcp/github_auto_triage_and_create":
+      return await http_github_auto_triage_and_create(env, payload);
+    default:
+      throw new ApiError("MCP endpoint not found", 404);
+  }
 }
 
+/**
+ * Handle agent requests
+ * @param request - HTTP request
+ * @param env - Environment variables
+ * @returns Agent execution result
+ * @throws ApiError if input invalid
+ */
+async function handleAgentRequest(request: Request, env: Env): Promise<unknown> {
+  const { input } = await request.json();
+  
+  if (!input || typeof input !== "string") {
+    throw new ApiError("input (string) required", 400);
+  }
+  
+  return await runAgent(input, env, request);
+}
+
+/**
+ * Main Cloudflare Workers fetch handler
+ * @param request - HTTP request
+ * @param env - Environment variables
+ * @param ctx - Execution context
+ * @returns HTTP response
+ */
 export default {
-  async fetch(req: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Initialize environment for this request
     setEnv(env);
 
-    const ORIGIN = env.FRONTEND_ORIGIN || req.headers.get("Origin") || "*"; // 生产建议白名单校验后回显
-    const baseCors = {
-      "Access-Control-Allow-Origin": ORIGIN,
-      "Access-Control-Allow-Headers": "content-type,authorization",
-      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-      "Vary": "Origin",
-    };
+    // Build CORS headers
+    const corsHeaders = buildCorsHeaders(env, request);
 
-    if (req.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: baseCors });
+    // Handle OPTIONS preflight requests
+    if (request.method === "OPTIONS") {
+      return createOptionsResponse(corsHeaders);
     }
 
-    // ---- 路由：/agent/run ----
-    const url = new URL(req.url);
-    if (req.method === "POST" && url.pathname === "/agent/run") {
-      try {
-        const { input } = await req.json();
-        if (!input || typeof input !== "string") {
-          const res = json({ error: "input (string) required" }, 400);
-          for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
-          return res;
-        }
-        const result = await runAgent(input, env, req);
-        const res = json(result, 200);
-        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
-        return res;
-      } catch (e: any) {
-        const res = json({ error: e?.message || "Agent failed" }, 500);
-        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
-        return res;
-      }
-    }
+    const url = new URL(request.url);
 
-    // ---- 路由：/mcp/* ----
-    if (req.method === "POST" && url.pathname.startsWith("/mcp/")) {
-      try {
-        const payload = await req.json().catch(() => ({}));
-        let result: unknown;
-        switch (url.pathname) {
-          case "/mcp/github_list_issues":
-            result = await http_github_list_issues(env, payload);
-            break;
-          case "/mcp/github_create_issue":
-            result = await http_github_create_issue(env, payload);
-            break;
-          case "/mcp/github_add_labels":
-            result = await http_github_add_labels(env, payload);
-            break;
-          case "/mcp/github_triage":
-            result = await http_github_triage(env, payload);
-            break;
-          case "/mcp/github_auto_triage_and_create":
-            result = await http_github_auto_triage_and_create(env, payload);
-            break;
-          default:
-            return new Response("Not Found", { status: 404, headers: baseCors });
-        }
-        const res = json(result, 200);
-        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
-        return res;
-      } catch (e: any) {
-        const res = json({ error: e?.message || "Internal error" }, 500);
-        for (const [k, v] of Object.entries(baseCors)) res.headers.set(k, v as string);
-        return res;
-      }
-    }
-
-    // ---- 其他路由走 GraphQL ----
     try {
-      const resp = await yoga.fetch(req, { env }, ctx);  // 正确传递 env
-      const headers = new Headers(resp.headers);
-      for (const [k, v] of Object.entries(baseCors)) headers.set(k, v as string);
-      return new Response(resp.body, { status: resp.status, headers });
-    } catch (err: any) {
-      // 即使出错也带上 CORS 头，避免浏览器吞错误
-      return new Response(
-        JSON.stringify({ error: err?.message || "Internal Error" }),
-        { status: 500, headers: { ...baseCors, "Content-Type": "application/json" } }
-      );
+      // Route: /agent/run
+      if (request.method === "POST" && url.pathname === "/agent/run") {
+        const result = await handleAgentRequest(request, env);
+        return applyCors(json(result), corsHeaders);
+      }
+
+      // Route: /mcp/*
+      if (request.method === "POST" && url.pathname.startsWith("/mcp/")) {
+        const payload = await request.json().catch(() => ({}));
+        const result = await routeMcpRequest(url.pathname, payload, env);
+        return applyCors(json(result), corsHeaders);
+      }
+
+      // Route: GraphQL (all other requests)
+      const graphqlResponse = await yoga.fetch(request, { env }, ctx);
+      return applyCors(graphqlResponse, corsHeaders);
+
+    } catch (error) {
+      console.error("Request handling error:", error);
+      
+      // Handle known API errors
+      if (error instanceof ApiError) {
+        const response = error.status >= 400 && error.status < 500 
+          ? badRequest(error.message)
+          : internalError(error.message);
+        return applyCors(response, corsHeaders);
+      }
+
+      // Handle unknown errors
+      const response = internalError("Internal server error");
+      return applyCors(response, corsHeaders);
     }
   },
 };
