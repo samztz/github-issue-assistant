@@ -1,171 +1,158 @@
+# GitHub Issue Assistant MCP
 
-# GitHub Issue Assistant MCP (Mastra Version)
+> 🤖 基于 Mastra + MCP 构建的智能 GitHub Issue 管理助手
 
 ## 📌 项目简介
 
-**GitHub Issue Assistant MCP** 是一个基于 [Mastra](https://mastra.io) 与 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 构建的智能开发工具，它允许你直接在 AI 对话（如 Claude Desktop、Cursor 等 MCP 客户端）中，通过自然语言创建、管理和查看 GitHub 仓库的 Issue。
+**GitHub Issue Assistant MCP** 是一个基于 [Mastra](https://mastra.io) 与 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 构建的智能开发工具。它允许你在 AI 对话（Claude Desktop、Cursor 等）中通过自然语言创建、管理 GitHub Issue，并提供 AI 智能分析和自动分类功能。
 
-本项目示范了如何：
+### ✨ 核心特性
 
-* 使用 **Mastra** 快速搭建具备上下文处理能力的 MCP Server
-* 通过 **GitHub REST API** 实现标准化 Issue 管理
-* 将 AI 对话上下文无缝映射到实际研发任务
-
----
-
-## 🎯 项目意图
-
-本项目旨在展示**云端 AI 开发助手**与**研发自动化工具链**的融合。通过 Mastra，我们能够：
-
-* 轻松注册和管理 MCP 工具
-* 在执行前后注入自定义逻辑（如输入验证、响应格式化、调用链跟踪）
-* 将 GitHub 操作嵌入 AI Agent 的推理流程中，减少上下文切换
+- 🎯 **自然语言交互** - 在 AI 对话中直接管理 GitHub Issue
+- 🧠 **AI 智能分析** - 自动分析 Issue 优先级和推荐标签
+- 🔧 **多接口支持** - MCP 协议 + REST API + GraphQL + Web UI
+- 🏗️ **现代架构** - Monorepo + TypeScript + Cloudflare Workers
+- 🚀 **快速部署** - 一键启动本地开发和云端部署
 
 ---
 
-## 🏗 技术架构
+## 🏗️ 系统架构
+
+### 整体架构图
 
 ```mermaid
-flowchart LR
-  %% 客户端
-  subgraph "Claude / Cursor"
-    A[自然语言请求] -->|MCP 调用| B[MCP Client]
-  end
-
-  %% 本地服务（Mastra）
-  subgraph "Local MCP Server (Mastra)"
-    B -->|stdio JSON-RPC| C[Mastra MCP Server]
-    C -->|调用工具定义| T[Mastra Tools Layer]
-    T -->|HTTP Fetch| D[(GitHub API)]
-  end
-
-  %% 云端
-  subgraph "GitHub Cloud"
-    D -->|响应数据| C
-  end
-
-  C --> B --> A
+flowchart TB
+    subgraph "AI 客户端"
+        A[Claude Desktop] 
+        B[Cursor]
+        C[其他 MCP 客户端]
+    end
+    
+    subgraph "GitHub Issue Assistant"
+        D[MCP Server<br/>Mastra + TypeScript]
+        E[Web Frontend<br/>React + Vite]
+        F[API Server<br/>Cloudflare Workers]
+    end
+    
+    subgraph "外部服务"
+        G[GitHub API]
+        H[OpenAI API]
+    end
+    
+    A -.->|MCP 协议| D
+    B -.->|MCP 协议| D
+    C -.->|MCP 协议| D
+    E -->|HTTP API| F
+    D -->|REST API| G
+    F -->|REST API| G
+    F -->|AI 分析| H
+    
+    style D fill:#e1f5fe
+    style F fill:#f3e5f5
+    style E fill:#e8f5e8
 ```
 
-**核心组件：**
+### 技术栈组成
 
-1. **Mastra MCP Server**
+| 组件 | 技术栈 | 功能描述 |
+|------|--------|----------|
+| **MCP Server** | Mastra + TypeScript + MCP SDK | 处理 MCP 协议，提供 GitHub 工具集 |
+| **API Server** | Cloudflare Workers + GraphQL Yoga | 云端 API 服务，支持 AI 分析 |
+| **Web Frontend** | React 18 + Vite + TypeScript | Web 界面，双模式（聊天 + Agent） |
+| **AI 集成** | OpenAI GPT + 自然语言处理 | 智能分析、优先级分配、标签推荐 |
 
-   * 基于 Mastra 的 MCP SDK 实现，管理工具注册与调用
-   * 提供 `create_issue`、`add_labels`、`list_issues` 等 GitHub 相关工具
-2. **Mastra Tools Layer**
+### Monorepo 结构
 
-   * 使用 Mastra 工具定义（Tool Definition）与 Schema（Zod）实现参数校验与文档化
-3. **GitHub REST API**
-
-   * 使用细粒度 Personal Access Token (PAT) 授权
-   * 所需最小权限：`Issues: Read and write` + `Metadata: Read-only`
-
----
-
-## 🔧 功能清单
-
-| 工具名称           | 功能描述         | 输入参数                                        | 示例调用                                                   |
-| -------------- | ------------ | ------------------------------------------- | ------------------------------------------------------ |
-| `create_issue` | 创建新 Issue    | owner, repo, title, body, labels, assignees | “帮我在 `myorg/myrepo` 创建一个标题为‘前端 Bug’的 Issue 并打上 bug 标签” |
-| `add_labels`   | 给 Issue 添加标签 | owner, repo, number, labels                 | “给 myrepo 的 #42 添加 `help wanted` 标签”                   |
-| `list_issues`  | 列出仓库的 Issues | owner, repo, state(open/closed/all)         | “列出我在 myrepo 中所有 open 状态的 Issue”                       |
-
----
-
-## ⚙️ 环境变量
-
-```bash
-# 必需
-GITHUB_TOKEN=ghp_xxxxxxxx       # GitHub PAT
-
-# 可选（减少每次输入 owner/repo）
-GH_DEFAULT_OWNER=my-github-username
-GH_DEFAULT_REPO=my-repo
+```
+github-issue-assistant/
+├── apps/
+│   ├── mcp/          # MCP Server (Mastra)
+│   ├── api/          # API Server (Cloudflare Workers)  
+│   └── web/          # Web Frontend (React)
+├── packages/         # 共享包
+└── docs/            # 项目文档
 ```
 
-> **建议**：使用 GitHub 细粒度 PAT，只勾选必要权限。
+---
+
+## 🔧 功能特性
+
+### 🎯 核心功能
+
+| 功能模块 | 描述 | 状态 |
+|---------|------|------|
+| **Issue 管理** | 创建、列出、添加标签 | ✅ 已完成 |
+| **AI 智能分析** | 优先级分配、标签推荐、摘要生成 | ✅ 已完成 |
+| **多接口支持** | MCP + REST API + GraphQL + Web UI | ✅ 已完成 |
+| **自然语言处理** | 命令解释和执行 | ✅ 已完成 |
+
+### 🛠️ 可用工具
+
+| 工具名称 | 功能描述 | 输入参数 | 使用示例 |
+|---------|---------|---------|----------|
+| `github_list_issues` | 列出仓库 Issues | `owner`, `repo`, `state?` | "列出 microsoft/vscode 的 open Issues" |
+| `github_create_issue` | 创建新 Issue | `owner`, `repo`, `title`, `body?` | "在我的项目创建一个关于性能优化的 Issue" |
+| `github_add_labels` | 添加 Issue 标签 | `owner`, `repo`, `number`, `labels` | "给 #42 添加 bug 和 urgent 标签" |
+| `github_triage` | AI 智能分析 | `title`, `body?` | "分析这个 bug report 的优先级" |
+| `github_auto_triage_and_create` | 自动分析并创建 | `owner`, `repo`, `title`, `body?` | "智能创建并分类这个功能请求" |
+
+### 🎨 界面预览
+
+**Web UI 双模式：**
+- **聊天模式** - 类 ChatGPT 界面，支持自然语言对话
+- **Agent 模式** - 结构化表单，快速操作 GitHub Issue
 
 ---
 
-## 🚀 快速启动
+## 🚀 快速开始
 
+### 📋 环境要求
+
+- Node.js 18+
+- pnpm 8+
+- GitHub Personal Access Token
+- OpenAI API Key（可选，用于 AI 功能）
+
+### ⚙️ 环境配置
+
+1. **克隆项目**
 ```bash
-npm install
-GITHUB_TOKEN=your_token_here node server.mjs
+git clone https://github.com/yourusername/github-issue-assistant.git
+cd github-issue-assistant
 ```
 
-在 Claude Desktop / Cursor 中将该 Mastra MCP Server 添加到配置文件，重启客户端即可。
-
----
-
-## 🛡️ 安全建议
-
-* **最小权限**：细粒度 PAT 仅授权所需仓库与 Issue 权限
-* **不提交敏感信息**：将 Token 存放于 `.env`，并在 `.gitignore` 中忽略
-* **组织仓库**：需要管理员批准细粒度 PAT 才能生效
-
----
-
-## 🌟 Mastra 的优势
-
-* **更快的工具注册**：使用 Mastra 提供的 API 一步定义并注册 MCP 工具
-* **可扩展性强**：可方便地增加额外工具（评论、关闭 Issue、拉取 PR 等）
-* **上下文增强**：可在工具执行前后注入 AI 上下文、业务逻辑和验证规则
-* **更好调试体验**：Mastra 提供内建的日志和调试功能，便于开发测试
-
----
-
-## 🚀 Mastra + MCP 使用指南
-
-### 📋 环境变量设置
-
-在 `apps/mcp/.env` 文件中配置必要的环境变量：
-
+2. **安装依赖**
 ```bash
-# GitHub API Token (必需)
+pnpm install
+```
+
+3. **配置环境变量**
+```bash
+# apps/mcp/.env
 GITHUB_TOKEN=github_pat_xxxxxxxxxx
+OPENAI_API_KEY=sk-xxxxxxxxxx
 
-# OpenAI API Key (可选，用于 AI 功能)
+# apps/api/.env
+GITHUB_TOKEN=github_pat_xxxxxxxxxx
 OPENAI_API_KEY=sk-xxxxxxxxxx
 ```
 
-### 🏃‍♂️ 启动命令
+### 🏃‍♂️ 启动服务
 
 ```bash
-# 启动 MCP 服务器
+# 启动 MCP Server
 pnpm -F ./apps/mcp dev
 
-# 或者从 apps/mcp 目录
-cd apps/mcp && pnpm dev
+# 启动 API Server (新终端)
+pnpm -F ./apps/api dev
+
+# 启动 Web Frontend (新终端)
+pnpm -F ./apps/web dev
 ```
 
-### 🧪 测试命令
+### 🔗 Claude Desktop 集成
 
-```bash
-# 列出所有可用工具
-pnpm -F ./apps/mcp run tools
-
-# 测试 AI 分析功能
-pnpm -F ./apps/mcp run try:triage -- '{"title":"Bug in login form", "body":"Users cannot submit the form"}'
-
-# 测试自动分拣并创建 Issue
-pnpm -F ./apps/mcp run try:auto -- '{"owner":"myorg","repo":"myrepo","title":"Feature request: dark mode"}'
-```
-
-### 🔧 可用工具列表
-
-| 工具名称 | 功能描述 | 参数 |
-|---------|---------|------|
-| `github_list_issues` | 列出仓库 Issues | `owner`, `repo`, `state?`, `labels?` |
-| `github_create_issue` | 创建新 Issue | `owner`, `repo`, `title`, `body?`, `labels?` |
-| `github_add_labels` | 给 Issue 添加标签 | `owner`, `repo`, `number`, `labels` |
-| `github_triage` | AI 智能分析 Issue | `title`, `body?` |
-| `github_auto_triage_and_create` | AI 分析 + 自动创建 Issue | `owner`, `repo`, `title`, `body?` |
-
-### 📱 与 Claude Desktop 集成
-
-1. 在 Claude Desktop 配置文件中添加：
+在 Claude Desktop 配置文件中添加：
 
 ```json
 {
@@ -179,9 +166,239 @@ pnpm -F ./apps/mcp run try:auto -- '{"owner":"myorg","repo":"myrepo","title":"Fe
 }
 ```
 
-2. 重启 Claude Desktop，即可在对话中使用 GitHub Issue 管理功能！
+重启 Claude Desktop 即可在对话中使用！
+
+### 🧪 测试功能
+
+```bash
+# 测试工具列表
+pnpm -F ./apps/mcp run tools
+
+# 测试 AI 分析
+pnpm -F ./apps/mcp run try:triage -- '{"title":"Bug in login", "body":"Users cannot login"}'
+
+# 测试自动创建
+pnpm -F ./apps/mcp run try:auto -- '{"owner":"myorg","repo":"myrepo","title":"Feature request"}'
+```
 
 ---
+
+## 🌐 API 接口
+
+### REST API 端点
+
+| 端点 | 方法 | 功能 | 请求示例 |
+|------|------|------|----------|
+| `/mcp/github_list_issues` | POST | 列出 Issues | `{"owner":"org","repo":"name"}` |
+| `/mcp/github_create_issue` | POST | 创建 Issue | `{"owner":"org","repo":"name","title":"标题"}` |
+| `/mcp/github_triage` | POST | AI 分析 | `{"title":"Bug report","body":"详细描述"}` |
+
+### GraphQL 查询
+
+```graphql
+query {
+  issues(owner: "microsoft", repo: "vscode", state: OPEN) {
+    title
+    body
+    labels
+    createdAt
+  }
+}
+```
+
+**完整 API 文档**: [查看详细接口文档](#-http-mcp-endpoints)
+
+---
+
+## 🛡️ 安全配置
+
+### GitHub Token 权限
+
+推荐使用细粒度 Personal Access Token，最小权限：
+- ✅ **Issues**: Read and write
+- ✅ **Metadata**: Read-only
+- ❌ **Contents**: 不需要
+- ❌ **Actions**: 不需要
+
+### 环境变量安全
+
+```bash
+# .env 文件配置
+GITHUB_TOKEN=github_pat_xxxxxxxxxx
+OPENAI_API_KEY=sk-xxxxxxxxxx
+
+# .gitignore 确保包含
+.env
+.env.local
+*.env
+```
+
+### CORS 配置
+
+API 服务器自动配置 CORS，支持跨域请求：
+
+```javascript
+{
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "content-type,authorization",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS"
+}
+```
+
+---
+
+## 📈 项目路线图
+
+### ✅ 已完成功能
+
+- [x] MCP 服务器基础架构
+- [x] GitHub API 集成（Issues 管理）
+- [x] OpenAI 智能分析
+- [x] Web UI 界面
+- [x] REST API 支持
+- [x] Claude Desktop 集成
+- [x] 多环境部署支持
+
+### 🚧 开发中功能
+
+- [ ] Issue 评论管理
+- [ ] Pull Request 支持  
+- [ ] 批量操作功能
+- [ ] 实时通知系统
+- [ ] 高级搜索和过滤
+
+### 🔮 计划中功能
+
+- [ ] **多平台支持** - GitLab、Bitbucket 集成
+- [ ] **工作流自动化** - GitHub Actions 触发
+- [ ] **团队协作** - 多用户权限管理
+- [ ] **数据分析** - Issue 趋势和报表
+- [ ] **自定义模板** - Issue/PR 模板管理
+- [ ] **Webhook 集成** - 实时事件处理
+
+### 🎯 性能优化计划
+
+- [ ] **缓存策略** - Redis 缓存 GitHub API 响应
+- [ ] **批量处理** - 支持批量创建和更新
+- [ ] **API 限流** - 智能的 Rate Limiting
+- [ ] **离线支持** - PWA 离线功能
+
+---
+
+## 🛠️ 开发指南
+
+### 🏗️ 本地开发
+
+```bash
+# 开发模式启动所有服务
+pnpm dev
+
+# 单独启动某个服务
+pnpm -F ./apps/mcp dev    # MCP Server
+pnpm -F ./apps/api dev    # API Server  
+pnpm -F ./apps/web dev    # Web Frontend
+```
+
+### 🧪 测试
+
+```bash
+# 运行所有测试
+pnpm test
+
+# 运行特定模块测试
+pnpm -F ./apps/mcp test
+pnpm -F ./apps/api test
+```
+
+### 📦 构建部署
+
+```bash
+# 构建所有应用
+pnpm build
+
+# 部署到 Cloudflare
+pnpm -F ./apps/api deploy
+pnpm -F ./apps/web deploy
+```
+
+### 🔧 代码规范
+
+```bash
+# 代码格式化
+pnpm format
+
+# 类型检查
+pnpm typecheck
+
+# Lint 检查
+pnpm lint
+```
+
+---
+
+## 🤝 贡献指南
+
+### 🐛 Bug 反馈
+
+遇到问题？请 [提交 Issue](https://github.com/yourusername/github-issue-assistant/issues/new?template=bug_report.md)
+
+### 💡 功能建议  
+
+有好的想法？请 [提交功能请求](https://github.com/yourusername/github-issue-assistant/issues/new?template=feature_request.md)
+
+### 🔧 代码贡献
+
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
+
+### 📝 文档改进
+
+文档位于 `/docs` 目录，欢迎改进：
+- API 文档
+- 使用教程
+- 架构说明
+- 最佳实践
+
+---
+
+## 📄 许可证
+
+本项目基于 MIT 许可证开源 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+---
+
+## 🙏 致谢
+
+- [Mastra](https://mastra.io) - 强大的 MCP 开发框架
+- [Model Context Protocol](https://modelcontextprotocol.io) - 统一的 AI 工具协议
+- [GitHub REST API](https://docs.github.com/en/rest) - 丰富的 GitHub 集成能力
+- [OpenAI API](https://openai.com/api/) - 智能分析能力支持
+
+---
+
+## 📞 联系我们
+
+- 📧 邮箱: your.email@example.com  
+- 💬 Discord: [加入讨论](https://discord.gg/yourdiscord)
+- 🐦 Twitter: [@yourusername](https://twitter.com/yourusername)
+- 📖 博客: [技术分享](https://yourblog.com)
+
+---
+
+## 📊 项目统计
+
+![GitHub stars](https://img.shields.io/github/stars/yourusername/github-issue-assistant?style=social)
+![GitHub forks](https://img.shields.io/github/forks/yourusername/github-issue-assistant?style=social)
+![GitHub issues](https://img.shields.io/github/issues/yourusername/github-issue-assistant)
+![GitHub license](https://img.shields.io/github/license/yourusername/github-issue-assistant)
+
+---
+
+<details>
+<summary>📋 详细的 HTTP API 文档</summary>
 
 ## 🌐 HTTP MCP Endpoints
 
@@ -297,3 +514,5 @@ export async function mcp(path: string, payload: any) {
 export const githubAutoTriageAndCreate = (params) => 
   mcp("/mcp/github_auto_triage_and_create", params);
 ```
+
+</details>
