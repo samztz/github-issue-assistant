@@ -370,24 +370,6 @@ pnpm lint
 
 ---
 
-## 🙏 致谢
-
-- [Mastra](https://mastra.io) - 强大的 MCP 开发框架
-- [Model Context Protocol](https://modelcontextprotocol.io) - 统一的 AI 工具协议
-- [GitHub REST API](https://docs.github.com/en/rest) - 丰富的 GitHub 集成能力
-- [OpenAI API](https://openai.com/api/) - 智能分析能力支持
-
----
-
-## 📞 联系我们
-
-- 📧 邮箱: your.email@example.com  
-- 💬 Discord: [加入讨论](https://discord.gg/yourdiscord)
-- 🐦 Twitter: [@yourusername](https://twitter.com/yourusername)
-- 📖 博客: [技术分享](https://yourblog.com)
-
----
-
 ## 📊 项目统计
 
 ![GitHub stars](https://img.shields.io/github/stars/yourusername/github-issue-assistant?style=social)
